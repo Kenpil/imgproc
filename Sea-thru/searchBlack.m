@@ -25,7 +25,7 @@ maxBright = 0.45;
 darkCandidateN = 0;
 for i = 1:height
     for j = 1:width
-        if grayIm(i,j) < maxBright && depthMap(i,j) < maxDepth
+        if grayIm(i,j) < maxBright && depthMap(i,j) < maxDepth %明るさがmacBrightより小さく、かつ距離が有限
             darkCandidateN = darkCandidateN + 1;
         end
     end
@@ -43,7 +43,7 @@ for i = 1:height
     end
 end
 
-[~,I] = mink(darkCandidateM(3,:), blackN);
+[~,I] = mink(darkCandidateM(3,:), blackN); % 下位1%のblackN個の暗いピクセルを取り出す。IはdarkCandidateMでのblackN個の場所を指す
 % for i = 1:blackN
 %     colN = darkCandidateM(1,I(i));
 %     rowN = darkCandidateM(2,I(i));
@@ -74,10 +74,12 @@ for j = 1:3
     end
 end
 
+%%
+
 BcoeffVals = zeros(3,4);
 bEstimate = fittype(@(A,B,C,D,x) A*(1-exp(-1*B*x))+C*exp(-1*D*x));
 for i = 1:3
-    [Bfit, ~] = fit(x, BdataFull(:,i), bEstimate, 'StartPoint', [0.5, 2.5, 0.5, 2.5]);
+    [Bfit, ~] = fit(x, BdataFull(:,i), bEstimate, 'StartPoint', [0.5, 2.5, 0.5, 2.5], 'lower', [0 0 0 0], 'upper', [1 5 1 5]);
     coeffvals = coeffvalues(Bfit)
     BcoeffVals(i,:) = coeffvals;
     figure;
@@ -86,3 +88,41 @@ for i = 1:3
     scatter(x,Bfit(x));
     hold off;
 end
+
+%%
+
+z = 0:0.01:20;
+BcMapVals = zeros(3, length(z));
+for i = 1:3
+    A =  BcoeffVals(i, 1);
+    B =  BcoeffVals(i, 2);
+    C =  BcoeffVals(i, 3);
+    D =  BcoeffVals(i, 4);
+    BcMapVals(i,:) =  A*(1-exp(-1*B*z))+C*exp(-1*D*z);
+end
+
+%%
+
+BcIm = ones(height, width, 3);
+depthval = 1;
+for j = 1:height
+    for k = 1:width
+        depthval = depthMap(j,k);
+        if depthval < 20
+            BcIm(j,k,:) = BcMapVals(:,round(100*depthval))';
+        end
+    end
+end
+imshow(BcRemovedIm);
+
+%%
+
+BcRemovedIm = rgbIm - BcIm;
+for i = 1:height
+    for j = 1:width
+        if BcRemovedIm(i,j) < 0
+            BcRemovedIm(i,j) = 0;
+        end
+    end
+end
+imshow(BcRemovedIm);
