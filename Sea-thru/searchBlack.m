@@ -1,78 +1,82 @@
 clear all;
 clc;
 
-rgbImOri = imread('image/rgbIm5.jpg');
+%rgbImOri = imread('image/rgbIm3.jpg');
+% rgbImOri = imread('D3/Raw/4910.ARW');
+% imfinfo('image/rgbIm3.jpg')
+% if true
+%     row = 5700;
+%     col = 7200;
+%     imfinfo('D3/Raw/4910.ARW')
+%     fin=fopen('D3/Raw/4910.ARW','r');
+%     I=fread(fin,row*col,'uint8=>uint8');
+%     Z=reshape(I,row,col);
+%     Z=Z';
+%     k=imshow(Z)
+% end
+rgbImOri = imread('Nachsholim/image_set_11/RGT.tif');
+%rgbImOri = imread('image/rawimage.png');
 %rgbIm = imread('image/grayscaleSample.jpg');
 load('data/depthMap5.mat');
 width = 2737;
 height = 1827;
-%  width = 1000;
-%  height = 1000;
+% width = 1454;
+% height = 963;
 grayImOri = rgb2gray(rgbImOri);
 rgbIm = im2double(rgbImOri);
 grayIm = im2double(grayImOri);
-figure;
-imshow(grayIm);
-figure;
-depthlim = [2 10];
-imagesc(depthMap,depthlim);
-imwrite(grayIm,'image/grayIm.jpg');
+clear rgbImOri;
+clear grayImOri;
+% figure;
+% imshow(grayIm);
+%figure;
+%depthlim = [0 10];
+%imagesc(depthMap,depthlim);
+% imwrite(grayIm,'image/grayIm.jpg');
 
-blackN = round(width * height * 0.01);
-maxDepth = 50;
-maxBright = 0.45;
-
-darkCandidateN = 0;
-for i = 1:height
-    for j = 1:width
-        if grayIm(i,j) < maxBright && depthMap(i,j) < maxDepth %明るさがmacBrightより小さく、かつ距離が有限
-            darkCandidateN = darkCandidateN + 1;
-        end
-    end
-end
-darkCandidateM = zeros(3,darkCandidateN);
-tmp = 1;
-for i = 1:height
-    for j = 1:width
-        if grayIm(i,j) < maxBright && depthMap(i,j) < maxDepth
-            darkCandidateM(1,tmp) = i;
-            darkCandidateM(2,tmp) = j;
-            darkCandidateM(3,tmp) = grayIm(i,j);
-            tmp = tmp + 1;
-        end
-    end
-end
-
-[~,I] = mink(darkCandidateM(3,:), blackN); % 下位1%のblackN個の暗いピクセルを取り出す。IはdarkCandidateMでのblackN個の場所を指す
-% for i = 1:blackN
-%     colN = darkCandidateM(1,I(i));
-%     rowN = darkCandidateM(2,I(i));
-%     rgbIm(colN,rowN,1) = 255;
-%     rgbIm(colN,rowN,2) = 0;
-%     rgbIm(colN,rowN,3) = 0;
-% end   
-figure;
-imshow(rgbIm);
-%imwrite(rgbIm,'image/rgbImRed.jpg');
 %%
 
-% rgbLens = zeros(1000,1000);
-% for i = 1:1000
-%     for j = 1:1000
-%         rgbLens(i,j) = rgbIm(i, j);
-%     end
-% end
-
-x = zeros(blackN,1);
-for i = 1:blackN
-    x(i,1) = depthMap(darkCandidateM(1,I(i)), darkCandidateM(2,I(i)));
-end 
-BdataFull = zeros(blackN,3);
-for j = 1:3
-    for i = 1:blackN
-        BdataFull(i,j) = rgbIm(darkCandidateM(1,I(1,i)), darkCandidateM(2,I(1,i)), j);
+rangeRankNs = zeros(1,10);
+for i = 1:height
+    for j = 1:width
+        for k = 1:10
+            if depthMap(i,j) > k && depthMap(i,j) < k+1
+                rangeRankNs(1,k) = rangeRankNs(1,k) + 1;
+            end
+        end
     end
 end
+
+blackN = sum(round(rangeRankNs*0.01));
+x = zeros(blackN,1);
+BdataFull = zeros(blackN,3);
+tmpN = 0;
+for k = 1:10
+    kRangeM = zeros(rangeRankNs(1,k),3); % [x, y, depthv];
+    num = 1;
+    for i = 1:height
+        for j = 1:width           
+            if depthMap(i,j) > k && depthMap(i,j) < k+1
+                kRangeM(num,1) = i;
+                kRangeM(num,2) = j;
+                kRangeM(num,3) = grayIm(i,j);
+                num = num + 1;
+            end
+        end
+    end
+    [~,I] = mink(kRangeM(:,3), round(rangeRankNs(1,k)*0.01));
+    for i = 1:round(rangeRankNs(k)*0.01)
+        colN = kRangeM(I(i),1);
+        rowN = kRangeM(I(i),2);
+        x(tmpN+i) = depthMap(colN,rowN);
+        BdataFull(tmpN+i,:) = rgbIm(colN,rowN, :) * (1-exp(-0.17*depthMap(colN,rowN)));% expは謎の補正項
+%         rgbIm(colN,rowN,1) = 1;
+%         rgbIm(colN,rowN,2) = 0;
+%         rgbIm(colN,rowN,3) = 0;
+    end
+    tmpN = tmpN + round(rangeRankNs(1,k)*0.01);
+end
+% imshow(rgbIm);
 
 %%
 
@@ -99,7 +103,19 @@ for i = 1:3
     C =  BcoeffVals(i, 3);
     D =  BcoeffVals(i, 4);
     BcMapVals(i,:) =  A*(1-exp(-1*B*z))+C*exp(-1*D*z);
+%     figure;
+%     plot(z, BcMapVals(i,:));
 end
+% 
+% for i = 1:3
+%     A =  BcoeffVals(i, 1);
+%     B =  BcoeffVals(i, 2);
+%     C =  BcoeffVals(i, 3);
+%     D =  BcoeffVals(i, 4);
+%     BcMapVals(i,:) =  A*(1-exp(-1*B*z))+C*exp(-1*D*z);
+%     figure;
+%     plot(z(1:800), BcMapVals(i,1:800));
+% end
 
 %%
 
@@ -113,7 +129,8 @@ for j = 1:height
         end
     end
 end
-imshow(BcRemovedIm);
+figure;
+imshow(BcIm);
 
 %%
 
@@ -125,4 +142,6 @@ for i = 1:height
         end
     end
 end
+figure;
 imshow(BcRemovedIm);
+imwrite(BcRemovedIm,'image/BcRemovedIm.jpg');
