@@ -4,13 +4,13 @@ clc;
 
 width = 2737;
 height = 1827;
-load('Nachsholim/image_set_05/distanceFromCamera.mat');
-depthMap = dist_map_l;
-TF = isnan(dist_map_l);
+load('Nachsholim/image_set_11/distanceFromCamera.mat');
+depthMap = dist_map_r;
+TF = isnan(dist_map_r);
 depthMap(TF) = 100;
-save('Nachsholim/image_set_05/depthMap3.mat', 'depthMap');
+save('Nachsholim/image_set_11/depthMap5.mat', 'depthMap');
 
-load('Nachsholim/image_set_05/depthMap3.mat');
+load('Nachsholim/image_set_11/depthMap5.mat');
 
 figure;
 % h = surf(-depthMap);
