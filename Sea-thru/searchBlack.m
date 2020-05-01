@@ -29,9 +29,9 @@ clear rgbImOri;
 clear grayImOri;
 % figure;
 % imshow(grayIm);
-%figure;
-%depthlim = [0 10];
-%imagesc(depthMap,depthlim);
+% figure;
+% depthlim = [0 10];
+% imagesc(depthMap,depthlim);
 % imwrite(grayIm,'image/grayIm.jpg');
 
 %%
@@ -95,7 +95,7 @@ end
 
 %%
 
-z = 0:0.01:20;
+z = 0:0.001:20;
 BcMapVals = zeros(3, length(z));
 for i = 1:3
     A =  BcoeffVals(i, 1);
@@ -125,7 +125,7 @@ for j = 1:height
     for k = 1:width
         depthval = depthMap(j,k);
         if depthval < 20
-            BcIm(j,k,:) = BcMapVals(:,round(100*depthval))';
+            BcIm(j,k,:) = BcMapVals(:,round(1000*depthval))';
         end
     end
 end
@@ -136,12 +136,17 @@ imshow(BcIm);
 
 BcRemovedIm = rgbIm - BcIm;
 for i = 1:height
+    
     for j = 1:width
-        if BcRemovedIm(i,j) < 0
-            BcRemovedIm(i,j) = 0;
+        for k = 1:3
+            if BcRemovedIm(i,j,k) < 0
+                %BcRemovedIm(i,j,:) = rgbIm(i,j,:);
+                BcRemovedIm(i,j,k) = 0;
+            end
         end
     end
 end
 figure;
 imshow(BcRemovedIm);
-imwrite(BcRemovedIm,'image/BcRemovedIm.jpg');
+% imwrite(BcRemovedIm,'image/BcRemovedIm.jpg');
+% save('data/BcRemovedM.mat', 'BcRemovedIm');
