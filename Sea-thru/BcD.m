@@ -3,60 +3,19 @@ clc;
 
 load('data/BcRemovedM.mat');
 load('data/depthMap5.mat');
+height = length(depthMap(:,1));
+width = length(depthMap(1,:));
 
 %%
 
-p = 0.3;
-maxDepth = 50;
-maxDepthThre = 0.05;
-height = length(BcRemovedIm(:,1,1));
-width = length(BcRemovedIm(1,:,1));
-acM = zeros(height,width,3);
-acMtmp = zeros(height,width,3);
-repetition = 10;
-for i=1:repetition
-    i
-    for j = 2:height-1
-        for k = 2:width-1
-            Ne = 0;
-            actmp = zeros(3,1);
-            if depthMap(j-1,k) < maxDepth && abs(depthMap(j-1,k)-depthMap(j,k)) < maxDepthThre
-                Ne = Ne + 1;
-                for l = 1:3
-                    actmp(l,1) = actmp(l,1) + acM(j-1,k,l);
-                end
-            end
-            if depthMap(j+1,k) < maxDepth && abs(depthMap(j+1,k)-depthMap(j,k)) < maxDepthThre
-                Ne = Ne + 1;
-                for l = 1:3
-                    actmp(l,1) = actmp(l,1) + acM(j+1,k,l);
-                end
-            end
-            if depthMap(j,k-1) < maxDepth && abs(depthMap(j,k-1)-depthMap(j,k)) < maxDepthThre
-                Ne = Ne + 1;
-                for l = 1:3
-                    actmp(l,1) = actmp(l,1) + acM(j,k-1,l);
-                end
-            end
-            if depthMap(j,k+1) < maxDepth && abs(depthMap(j,k+1)-depthMap(j,k)) < maxDepthThre
-                Ne = Ne + 1;
-                for l = 1:3
-                    actmp(l,1) = actmp(l,1) + acM(j,k+1,l);
-                end
-            end
-            if Ne > 0
-                for l = 1:3
-                    acMtmp(j,k,l) =  p*BcRemovedIm(j,k,l) + (1-p)*actmp(l,1)/Ne;
-                end
-            end
-        end
-    end
-    acM = acMtmp;
-end
-save('data/acM.mat', 'acM');
-
+load('data/acM5000.mat');
+% acM(1500:1550,1500:1550,:)
+% figure;
+% imshow(acM);
 %%
-
+load('data/depthMap5.mat');
+height = length(acM(:,1,1));
+width = length(acM(1,:,1));
 
 rangeRankNs = zeros(1,10);
 for i = 1:height
@@ -75,7 +34,7 @@ x = zeros(BcDSampleN,1);
 BcDFull = zeros(BcDSampleN,3);
 tmpN = 0;
 for k = 1:10
-    kRangeM = zeros(rangeRankNs(1,k),2); % [x, y, depthv];
+    kRangeM = zeros(rangeRankNs(1,k),2); % [row, col];
     num = 1;
     for i = 1:height
         for j = 1:width           
@@ -99,9 +58,9 @@ for k = 1:10
     end
     tmpN = tmpN + round(rangeRankNs(1,k)*0.001);
 end
-% imshow(rgbIm);
 
 %%
+
 BcoeffVals = zeros(3,4);
 for i = 2:length(x)
     for j = 1:3
@@ -113,39 +72,62 @@ end
 for i = 1:3
     [Bfit, ~] = fit(x, BcDFull(:,i), 'exp2', 'lower', [0 -Inf 0 -Inf], 'upper', [Inf 0 Inf 0]);
     coeffvals = coeffvalues(Bfit)
-    BcoeffVals(i,:) = coeffvals;
-    figure;
-    scatter(x,BcDFull(:,i));
-    hold on;
-    scatter(x,Bfit(x));
-    hold off;
+%     BcoeffVals(i,:) = coeffvals;
+%     figure;
+%     scatter(x,BcDFull(:,i));
+%     hold on;
+%     scatter(x,Bfit(x));
+%     hold off;
 end
 
 %%
 
-
 z = (0:0.001:20)';
 expBcDzMapVals = zeros(length(z),3);
+%BcoeffVals(1,:) = BcoeffVals(2,:);
+%BcoeffVals = [3.39405778579470 -0.346198463967847 0.109868883514865 -8.76771675453485e-09; 3.39405778579470 -0.346198463967847 0.109868883514865 -8.76771675453485e-09; 3.39405778579470 -0.346198463967847 0.109868883514865 -8.76771675453485e-09];
+
+% A =  BcoeffVals(i, 1);
+% B =  BcoeffVals(i, 2);
+% C =  BcoeffVals(i, 3);
+% D =  BcoeffVals(i, 4);
+% BcDz =  A*exp(B*z)+C*exp(D*z);
+% figure;
+% plot(z, BcDz);
+    
 for i = 1:3
     A =  BcoeffVals(i, 1);
     B =  BcoeffVals(i, 2);
     C =  BcoeffVals(i, 3);
     D =  BcoeffVals(i, 4);
     expBcDzMapVals(:,i) =  exp((A*exp(B*z)+C*exp(D*z)).*z);
-    figure;
-    plot(z, expBcDzMapVals(:,i));
+%     figure;
+%     plot(z, expBcDzMapVals(:,i));
+%     figure;
+%     plot(z, A*exp(B*z)+C*exp(D*z));
+%     ylim([0 5]);
 end
 
+%%
+ 
+% WcCoeff = [0.654, -0.4217; 0.7502, -0.2710; 0.654, -0.4217];
+% Wc = WcCoeff(:,1)*exp(WcCoeff(:,2)*5);
+% load('data/BcRemovedM.mat');
+JcIm = zeros(length(depthMap(:,1,1)),length(depthMap(1,:,1)),3);
 depthval = 1;
+Wc = [1.5; 2; 2];
+Wc = [1; 1; 1];
 for j = 1:height
     for k = 1:width
         depthval = depthMap(j,k);
         for i = 1:3
             if depthval < 20
-                acMtmp(j,k,i) = acM(j,k,i)*expBcDzMapVals(round(1000*depthval),i);
+                JcIm(j,k,i) = BcRemovedIm(j,k,i)*expBcDzMapVals(round(1000*depthval),i)/Wc(i);
             end
         end
     end
 end
+%JcIm(1400:1450,1000:200,:)
 figure;
-imshow(acMtmp);
+imshow(JcIm);
+title('JcIm');

@@ -1,27 +1,10 @@
 clear all;
 clc;
 
-%rgbImOri = imread('image/rgbIm3.jpg');
-% rgbImOri = imread('D3/Raw/4910.ARW');
-% imfinfo('image/rgbIm3.jpg')
-% if true
-%     row = 5700;
-%     col = 7200;
-%     imfinfo('D3/Raw/4910.ARW')
-%     fin=fopen('D3/Raw/4910.ARW','r');
-%     I=fread(fin,row*col,'uint8=>uint8');
-%     Z=reshape(I,row,col);
-%     Z=Z';
-%     k=imshow(Z)
-% end
 rgbImOri = imread('Nachsholim/image_set_11/RGT.tif');
-%rgbImOri = imread('image/rawimage.png');
-%rgbIm = imread('image/grayscaleSample.jpg');
 load('data/depthMap5.mat');
 width = 2737;
 height = 1827;
-% width = 1454;
-% height = 963;
 grayImOri = rgb2gray(rgbImOri);
 rgbIm = im2double(rgbImOri);
 grayIm = im2double(grayImOri);
@@ -69,7 +52,7 @@ for k = 1:10
         colN = kRangeM(I(i),1);
         rowN = kRangeM(I(i),2);
         x(tmpN+i) = depthMap(colN,rowN);
-        BdataFull(tmpN+i,:) = rgbIm(colN,rowN, :) * (1-exp(-0.17*depthMap(colN,rowN)));% expは謎の補正項
+        BdataFull(tmpN+i,:) = rgbIm(colN,rowN, :); %* (1-exp(-0.17*depthMap(colN,rowN)));% expは謎の補正項
 %         rgbIm(colN,rowN,1) = 1;
 %         rgbIm(colN,rowN,2) = 0;
 %         rgbIm(colN,rowN,3) = 0;
@@ -148,5 +131,5 @@ for i = 1:height
 end
 figure;
 imshow(BcRemovedIm);
-% imwrite(BcRemovedIm,'image/BcRemovedIm.jpg');
-% save('data/BcRemovedM.mat', 'BcRemovedIm');
+imwrite(BcRemovedIm,'image/BcRemovedIm.jpg');
+save('data/BcRemovedM.mat', 'BcRemovedIm');
