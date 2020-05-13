@@ -5,6 +5,8 @@ load('data/BcRemovedM.mat');
 load('data/depthMap5.mat');
 height = length(depthMap(:,1));
 width = length(depthMap(1,:));
+figure;
+imshow(BcRemovedIm);
 
 %%
 
@@ -72,7 +74,7 @@ end
 for i = 1:3
     [Bfit, ~] = fit(x, BcDFull(:,i), 'exp2', 'lower', [0 -Inf 0 -Inf], 'upper', [Inf 0 Inf 0]);
     coeffvals = coeffvalues(Bfit)
-%     BcoeffVals(i,:) = coeffvals;
+    BcoeffVals(i,:) = coeffvals;
 %     figure;
 %     scatter(x,BcDFull(:,i));
 %     hold on;
