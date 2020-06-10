@@ -1,7 +1,7 @@
 clear all;
 clc;
 
-img = imread('brainAct1.jpg');
+img = imread('brainAct6.jpg');
 height = length(img(:,1,1));
 width = length(img(1,:,1));
 redThre = 100;
@@ -36,9 +36,9 @@ imshow(resultImg);
 
 %%
 
-idx = kmeans(actPlaceM, 2);
+idx = kmeans(actPlaceM, 6);
 
-for j = 1:2
+for j = 1:6
     colorRand = randi([0 255],3,1);
     for i = 1:actN
         if(idx(i,1) == j)
@@ -51,7 +51,13 @@ end
 imshow(resultImg);
 
 %%
-BIC = bic(actPlaceM,2,idx)
+clc;
+[xK,xIndex] = xmeans(actPlaceM);
+xK
+
+%%
+clc;
+BIC = bic(actPlaceM,3,idx)
 % resultImg(89,196,2) = 255; 
 % resultImg(111,291,2) = 255; 
 % resultImg(221,244,2) = 255; 
@@ -62,11 +68,42 @@ BIC = bic(actPlaceM,2,idx)
 % imshow(resultImg);
 
 %%
+
 function [xK, xIndex] = xmeans(x)
-    R = length(x(:)); 
+    R = length(x(:,1));
+    M = length(x(1,:));
     index = ones(R,1);
-    bic = BIC(x,1,index);
+    xK = 1;
+    xIndex = ones(R,1);
+    bicOri = bic(x,1,index)
+    idxChild = kmeans(x, 2);
+    bicChild = bic(x,2,idxChild)
+    if(bicOri < bicChild)
+        xK = xK + 1;
+        Rchild = zeros(2,1);
+        for i = 1:R
+            Rchild(idxChild(i)) = Rchild(idxChild(i)) + 1;
+        end
+        xChild1 = zeros(Rchild(1),M);
+        xChild2 = zeros(Rchild(2),M);
+        tmp1 = 1;
+        tmp2 = 3;
+        for i = 1:R
+            if(idxChild(i) == 1)
+                xChild1(tmp1,:) = x(i,:);
+                tmp1 = tmp1 + 1;
+            else
+                xChild2(tmp2,:) = x(i,:);
+                tmp2 = tmp2 + 1;
+            end
+        end
+        [xKChild1,xIndexChild1] = xmeans(xChild1);
+        [xKChild2,xIndexChild2] = xmeans(xChild2);
+        xK = xK + xKChild1 - 1;
+        xK = xK + xKChild2 - 1;
+    end
 end
+
 
 function BIC = bic(x,K,index)
     R = length(x(:,1)); % 要素の数:x(要素数,次元)
@@ -98,14 +135,16 @@ function BIC = bic(x,K,index)
             end
         end
     end
-    vali = vali / (R-K);
-    val = sum(vali);
-    
-    RiLogRi = 0;
     for i = 1:K
-        RiLogRi = RiLogRi + Ri(i)*log(R(i));
+        vali(i) = vali(i) / (Ri(i)-K);
     end
-    IDn = -R/2*log(2*pi) - R*M/2*log(val) - (R-K)/2 + RiLogRi - R*log(R);
+    
+    IDn = 0;
+    for i = 1:K
+        IDn = IDn - Ri(i)/2*log(2*pi) - Ri(i)*M/2*log(vali(i)) - (Ri(i)-K)/2 + Ri(i)*log(Ri(i)) - Ri(i)*log(R);
+    end
+    mui
+  
     pj = K*(M+1);
     BIC = IDn - pj/2*log(R);
 end
