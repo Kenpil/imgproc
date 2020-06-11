@@ -1,7 +1,8 @@
 clear all;
 clc;
 
-img = imread('brainAct6.jpg');
+img = imread('brainAct4.jpg');
+KTrue = 4;
 height = length(img(:,1,1));
 width = length(img(1,:,1));
 redThre = 100;
@@ -36,9 +37,9 @@ imshow(resultImg);
 
 %%
 
-idx = kmeans(actPlaceM, 6);
+idx = kmeans(actPlaceM, KTrue);
 
-for j = 1:6
+for j = 1:KTrue
     colorRand = randi([0 255],3,1);
     for i = 1:actN
         if(idx(i,1) == j)
@@ -49,6 +50,24 @@ for j = 1:6
     end
 end
 imshow(resultImg);
+
+%%
+
+clear all;
+clc;
+
+pointLength = 2000;
+actPlaceM = zeros(pointLength,2);
+KTrue = 4;
+mu = [5 5; 5 -5; -5 5; -5 -5;];
+for i =1:KTrue
+    sigma = [1 0; 0 1];
+    R = mvnrnd(mu(i,:),sigma,pointLength/KTrue);
+    actPlaceM(pointLength/KTrue*(i-1)+1:pointLength/KTrue*i,:) = R;
+end
+% plot(actPlaceM(:,1),actPlaceM(:,2),'.');
+idx = kmeans(actPlaceM, KTrue);
+gscatter(actPlaceM(:,1),actPlaceM(:,2),idx)
 
 %%
 clc;
@@ -77,6 +96,8 @@ function [xK, xIndex] = xmeans(x)
     xIndex = ones(R,1);
     bicOri = bic(x,1,index)
     idxChild = kmeans(x, 2);
+%     figure;
+%     gscatter(x(:,1),x(:,2),idxChild);
     bicChild = bic(x,2,idxChild)
     if(bicOri < bicChild)
         xK = xK + 1;
@@ -144,6 +165,9 @@ function BIC = bic(x,K,index)
         IDn = IDn - Ri(i)/2*log(2*pi) - Ri(i)*M/2*log(vali(i)) - (Ri(i)-K)/2 + Ri(i)*log(Ri(i)) - Ri(i)*log(R);
     end
     mui
+    R
+    Ri
+    vali
   
     pj = K*(M+1);
     BIC = IDn - pj/2*log(R);
