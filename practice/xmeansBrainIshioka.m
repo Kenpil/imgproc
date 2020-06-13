@@ -56,10 +56,16 @@ imshow(resultImg);
 clear all;
 clc;
 
-pointLength = 420;
+pointLength = 360;
 actPlaceM = zeros(pointLength,2);
-KTrue = 4;
-mu = [15 5; 15 -5; -15 5; -15 -5];
+KTrue = 6;
+% mu = zeros(KTrue,2);
+% for i = 1:KTrue
+%     mu(i,1) = -15 + 30*rand(1);
+%     mu(i,2) = -15 + 30*rand(1);
+% end
+mu = -15 + 30*rand(KTrue,2);
+mu
 for i =1:KTrue
     sigma = [1 0; 0 1];
     R = mvnrnd(mu(i,:),sigma,pointLength/KTrue);
@@ -99,7 +105,7 @@ function [xK, xIndex] = xmeans(x)
 %     figure;
 %     gscatter(x(:,1),x(:,2),idxChild);
     bicChild = bic(x,2,idxChild)
-    if(bicOri < bicChild)
+    if(bicOri > bicChild)
         xK = xK + 1;
         Rchild = zeros(2,1);
         for i = 1:R
@@ -131,6 +137,7 @@ function BIC = bic(x,K,index)
     M = length(x(1,:)); % 要素の次元
     Ri = zeros(K,1);
     mui = zeros(K,M); % i番目クラスタの平均座標
+    BIC = 0;
     
     for i = 1:R
         for j = 1:K
@@ -147,13 +154,13 @@ function BIC = bic(x,K,index)
     if(K == 1)
         x_mu = zeros(R,2);
         for i = 1:M
-            x_mu = x(:,i) - mui(i,1);
+            x_mu(:,i) = x(:,i) - mui(1,i);
         end
-        Vi = x_mu'*x_mu/R;
+        Vi = x_mu'*x_mu/R
         ViInv = inv(Vi);
         l1 = 0;
         for i = 1:R
-            l1 = l1 + x_mu(i,:)'*ViInv*x_mu(i,:);
+            l1 = l1 + x_mu(i,:)*ViInv*x_mu(i,:)';
         end
         l1 = -l1/2;
         BIC = -2*(-R*M*log(2*pi)/2 - R*log(det(Vi))/2 + l1) + M*(M+3)/2;
@@ -173,19 +180,31 @@ function BIC = bic(x,K,index)
                 tmp2 = tmp2 + 1;
             end
         end
-        Vi1 = x1_mu'*x1_mu/Ri(1);
+        Vi1 = x1_mu'*x1_mu/Ri(1)
         Vi1Inv = inv(Vi1);
-        Vi2 = x2_mu'*x2_mu/Ri(2);
+        Vi2 = x2_mu'*x2_mu/Ri(2)
         Vi2Inv = inv(Vi2);
         
-        normMu1_mu2 = pow((mui(1,1)-mui(2,1))^2 + (mui(1,2)-mui(2,2))^2, 0.5);
-        beta = pow(normMu1_mu2/(det(Vi1)+det(Vi2)), 0.5);
+        normMu1_mu2 = power((mui(1,1)-mui(2,1))^2 + (mui(1,2)-mui(2,2))^2, 0.5);
+        beta = power(normMu1_mu2/(det(Vi1)+det(Vi2)), 0.5)
         alpha = 0.5/normcdf(beta);
         l1 = 0;
+        l2 = 0;
+        tmp1 = 1;
+        tmp2 = 1;
         for i = 1:R
-            l1 = l1 + x_mu(i,:)'*ViInv*x_mu(i,:);
+            if(index(i) == 1)
+                l1 = l1 + x1_mu(tmp1,:)*Vi1Inv*x1_mu(tmp1,:)';
+                tmp1 = tmp1 + 1;
+            else
+                l2 = l2 + x2_mu(tmp2,:)*Vi2Inv*x2_mu(tmp2,:)';
+                tmp2 = tmp2 + 1;
+            end
         end
         l1 = -l1/2;
-        BIC = -2*(-R*M*log(2*pi)/2 - R*log(det(Vi))/2 + l1) + M*(M+3)/2;
+        l2 = -l2/2;
+        L1 = -Ri(1)*M*log(2*pi)/2 - Ri(1)*log(det(Vi1)) + l1;
+        L2 = -Ri(2)*M*log(2*pi)/2 - Ri(2)*log(det(Vi2)) + l2;
+        BIC = -2*(L1+L2) + M*(M+3);
     end
 end
