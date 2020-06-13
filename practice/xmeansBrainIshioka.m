@@ -58,7 +58,7 @@ clc;
 
 pointLength = 360;
 actPlaceM = zeros(pointLength,2);
-KTrue = 6;
+KTrue = 2;
 % mu = zeros(KTrue,2);
 % for i = 1:KTrue
 %     mu(i,1) = -15 + 30*rand(1);
@@ -76,9 +76,11 @@ idx = kmeans(actPlaceM, KTrue);
 gscatter(actPlaceM(:,1),actPlaceM(:,2),idx)
 
 %%
+
 clc;
-[xK,xIndex] = xmeans(actPlaceM);
+[xK,xIndex] = xmeans(actPlaceM,1);
 xK
+gscatter(actPlaceM(:,1),actPlaceM(:,2),xIndex);
 
 %%
 clc;
@@ -94,7 +96,7 @@ BIC = bic(actPlaceM,3,idx)
 
 %%
 
-function [xK, xIndex] = xmeans(x)
+function [xK, xIndex] = xmeans(x,preK)
     R = length(x(:,1));
     M = length(x(1,:));
     index = ones(R,1);
@@ -124,8 +126,19 @@ function [xK, xIndex] = xmeans(x)
                 tmp2 = tmp2 + 1;
             end
         end
-        [xKChild1,xIndexChild1] = xmeans(xChild1);
-        [xKChild2,xIndexChild2] = xmeans(xChild2);
+        [xKChild1,xIndexChild1] = xmeans(xChild1,preK);
+        [xKChild2,xIndexChild2] = xmeans(xChild2,preK + xKChild1);
+        tmp1 = 1;
+        tmp2 = 1;
+        for i = 1:R
+            if(idxChild(i) == 1)
+                xIndex(i) = xIndexChild1(tmp1);
+                tmp1 = tmp1 + 1;
+            else
+                xIndex(i) = xKChild1 + xIndexChild2(tmp2);
+                tmp2 = tmp2 + 1;
+            end
+        end
         xK = xK + xKChild1 - 1;
         xK = xK + xKChild2 - 1;
     end
@@ -176,16 +189,21 @@ function BIC = bic(x,K,index)
                 x1_mu(tmp1,:) = x(i,:) - mui(1,:);
                 tmp1 = tmp1 + 1;
             else
-                x2_mu(tmp1,:) = x(i) - mui(2,:);
+                x2_mu(tmp2,:) = x(i,:) - mui(2,:);
                 tmp2 = tmp2 + 1;
             end
         end
+        Ri
+        x1_mu(1,:)
+        x2_mu(1,:)
         Vi1 = x1_mu'*x1_mu/Ri(1)
         Vi1Inv = inv(Vi1);
         Vi2 = x2_mu'*x2_mu/Ri(2)
         Vi2Inv = inv(Vi2);
         
         normMu1_mu2 = power((mui(1,1)-mui(2,1))^2 + (mui(1,2)-mui(2,2))^2, 0.5);
+        det(Vi1)
+        det(Vi2)
         beta = power(normMu1_mu2/(det(Vi1)+det(Vi2)), 0.5)
         alpha = 0.5/normcdf(beta);
         l1 = 0;
@@ -203,8 +221,8 @@ function BIC = bic(x,K,index)
         end
         l1 = -l1/2;
         l2 = -l2/2;
-        L1 = -Ri(1)*M*log(2*pi)/2 - Ri(1)*log(det(Vi1)) + l1;
-        L2 = -Ri(2)*M*log(2*pi)/2 - Ri(2)*log(det(Vi2)) + l2;
+        L1 = Ri(1)*log(alpha) - Ri(1)*M*log(2*pi)/2 - Ri(1)*log(det(Vi1)) + l1;
+        L2 = Ri(2)*log(alpha) - Ri(2)*M*log(2*pi)/2 - Ri(2)*log(det(Vi2)) + l2;
         BIC = -2*(L1+L2) + M*(M+3);
     end
 end
