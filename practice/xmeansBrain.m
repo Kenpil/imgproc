@@ -56,10 +56,10 @@ imshow(resultImg);
 clear all;
 clc;
 
-pointLength = 2000;
+pointLength = 420;
 actPlaceM = zeros(pointLength,2);
 KTrue = 4;
-mu = [5 5; 5 -5; -5 5; -5 -5;];
+mu = [15 5; 15 -5; -15 5; -15 -5];
 for i =1:KTrue
     sigma = [1 0; 0 1];
     R = mvnrnd(mu(i,:),sigma,pointLength/KTrue);
@@ -162,13 +162,24 @@ function BIC = bic(x,K,index)
     
     IDn = 0;
     for i = 1:K
-        IDn = IDn - Ri(i)/2*log(2*pi) - Ri(i)*M/2*log(vali(i)) - (Ri(i)-K)/2 + Ri(i)*log(Ri(i)) - Ri(i)*log(R);
+        IDn = IDn - Ri(i)*log(2*pi)/2 - Ri(i)*M*log(vali(i))/2 - (Ri(i)-K)/2 + Ri(i)*log(Ri(i)) - Ri(i)*log(R);
     end
     mui
     R
     Ri
     vali
+    A = - Ri(1)*log(2*pi)/2;
+    B = - Ri(1)*M*log(vali(1))/2;
+    C = - (Ri(1)-K)/2;
+    D = Ri(1)*log(Ri(1));
+    E = - Ri(1)*log(R);
+    A
+    B
+    C
+    D
+    E
   
-    pj = K*(M+1);
+    pj = K*(M+1)*2;
+    F = - pj/2*log(R)
     BIC = IDn - pj/2*log(R);
 end
