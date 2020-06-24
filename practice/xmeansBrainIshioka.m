@@ -1,8 +1,8 @@
 clear all;
 clc;
 
-img = imread('brainAct4.jpg');
-KTrue = 4;
+img = imread('brainAct7.jpg');
+KTrue = 7;
 height = length(img(:,1,1));
 width = length(img(1,:,1));
 redThre = 100;
@@ -33,6 +33,7 @@ for i = 1:actN
     resultImg(actPlaceM(i,1),actPlaceM(i,2),2) = 0;
     resultImg(actPlaceM(i,1),actPlaceM(i,2),3) = 255;
 end
+figure;
 imshow(resultImg);
 
 %%
@@ -49,6 +50,7 @@ for j = 1:KTrue
         end
     end
 end
+figure;
 imshow(resultImg);
 
 %%
@@ -56,34 +58,44 @@ imshow(resultImg);
 clear all;
 clc;
 
-pointLength = 180;
+pointLength = 1800; % 乱数生成する点の個数
 actPlaceM = zeros(pointLength,2);
-KTrue = 6;
-mu = zeros(KTrue,2);
+KTrue = 5; % 正解のクラスタの数
+
+% pointLength個の点をKTrue個のクラスタになるよう乱数で求める
 for i = 1:KTrue
-    mu(i,1) = -15 + 30*rand(1);
-    mu(i,2) = -15 + 30*rand(1);
+    mu = [30*rand 30*rand];
+    varRand = -0.05 + rand*0.1;
+    rand1 = rand+0.1;
+    rand2 = rand+0.1;
+    sigma = [rand1 varRand; varRand rand2];
+    X = mvnrnd(mu,sigma,pointLength/KTrue);
+    actPlaceM((i-1)*pointLength/KTrue+1:i*pointLength/KTrue,:) = X;
 end
-mu = -15 + 30*rand(KTrue,2);
-% mu = [0 3; 0 -3; 3 0; -3 0];
-for i =1:KTrue
-    sigma = [1 0; 0 1];
-    R = mvnrnd(mu(i,:),sigma,pointLength/KTrue);
-    actPlaceM(pointLength/KTrue*(i-1)+1:pointLength/KTrue*i,:) = R;
-end
-for i = 1:pointLength
-    %actPlaceM(i,:) = i;
-end
-% plot(actPlaceM(:,1),actPlaceM(:,2),'.');
+
+% 乱数生成してみた点を表示
+figure;
+scatter(actPlaceM(:,1),actPlaceM(:,2), '.','red');
+title(['Original Points (',num2str(KTrue),' clusters)']);
+
+% 正しいクラスタ数(KTrue個)でクラスタ数を明示して，従来のk-meansクラスタリングをしてみる
 idx = kmeans(actPlaceM, KTrue);
-gscatter(actPlaceM(:,1),actPlaceM(:,2),idx)
+% KTrue個のクラスタに応じた点の分布を図時
+figure;
+gscatter(actPlaceM(:,1),actPlaceM(:,2),idx);
+title(['K-means Points (',num2str(KTrue),' clusters)']);
 
-%%
+% 点のxy情報をmatファイルに保存
+% save('C:\Users\Dell\WinRobots\develop\hw\biology\言語学C/actPlaceM.mat', 'actPlaceM');
 
-clc;
+% x-meansにより，クラスタ数を与えず，自動でクラスタ数を判別し，さらに点を分ける
 [xK,xIndex] = xmeans(actPlaceM,1);
+% 求めたクラスタ数
 xK
+% 求めたクラスタ数に応じた点の分布を図示
+figure;
 gscatter(actPlaceM(:,1),actPlaceM(:,2),xIndex);
+title(['X-means Points (Auto Determined ',num2str(xK),' clusters)']);
 
 %%
 
@@ -93,11 +105,13 @@ function [xK, xIndex] = xmeans(x,preK)
     index = ones(R,1);
     xK = 1;
     xIndex = ones(R,1);
-    bicOri = bic(x,1,index)
+    bicOri = bic(x,1,index);
     idxChild = kmeans(x, 2);
 %     figure;
 %     gscatter(x(:,1),x(:,2),idxChild);
-    bicChild = bic(x,2,idxChild)
+ 
+    bicChild = bic(x,2,idxChild);
+%    bicOri
     if(bicOri > bicChild)
         Rchild = zeros(2,1);
         for i = 1:R
@@ -116,11 +130,11 @@ function [xK, xIndex] = xmeans(x,preK)
                 tmp2 = tmp2 + 1;
             end
         end
-        txt = sprintf('split! preK: %f',preK)
+        txt = sprintf('split! preK: %f',preK);
         [xKChild1,xIndexChild1] = xmeans(xChild1,preK);
-        txt = sprintf('xKChild1: %f, preK: %f',xKChild1, preK)
+        txt = sprintf('xKChild1: %f, preK: %f',xKChild1, preK);
         [xKChild2,xIndexChild2] = xmeans(xChild2,preK + xKChild1);
-        txt = sprintf('xKChild2: %f, preK: %f',xKChild2, preK)
+        txt = sprintf('xKChild2: %f, preK: %f',xKChild2, preK);
         tmp1 = 1;
         tmp2 = 1;
         for i = 1:R
@@ -158,13 +172,15 @@ function BIC = bic(x,K,index)
     for i = 1:K
         mui(i,:) = mui(i,:) / Ri(i,1);
     end
+%    Ri
+%    mui
     
     if(K == 1)
         x_mu = zeros(R,2);
         for i = 1:M
             x_mu(:,i) = x(:,i) - mui(1,i);
         end
-        Vi = x_mu'*x_mu/R
+        Vi = x_mu'*x_mu/R;
         ViInv = inv(Vi);
         l1 = 0;
         for i = 1:R
@@ -190,17 +206,19 @@ function BIC = bic(x,K,index)
                 tmp2 = tmp2 + 1;
             end
         end
-        Ri
-        mui
         Vi1 = x1_mu'*x1_mu/Ri(1);
         Vi1Inv = inv(Vi1);
         Vi2 = x2_mu'*x2_mu/Ri(2);
         Vi2Inv = inv(Vi2);
         
         normMu1_mu2_2 = power(mui(1,1)-mui(2,1),2) + power(mui(1,2)-mui(2,2),2);
-        % det(Vi1)
-        % det(Vi2)
-        beta = power(normMu1_mu2_2/(det(Vi1)+det(Vi2)), 0.5)
+        detVi1 = det(Vi1);
+        detVi2 = det(Vi2);
+        if detVi1 == 0 && detVi2 == 0
+            beta = 0;
+        else
+            beta = power(normMu1_mu2_2/(detVi1+detVi2), 0.5);
+        end
         alpha = 0.5/normcdf(beta);
         l1 = 0;
         l2 = 0;
@@ -219,6 +237,7 @@ function BIC = bic(x,K,index)
         l2 = -l2/2;
         L1 = Ri(1)*log(alpha) - Ri(1)*M*log(2*pi)/2 - Ri(1)*log(det(Vi1))/2 + l1;
         L2 = Ri(2)*log(alpha) - Ri(2)*M*log(2*pi)/2 - Ri(2)*log(det(Vi2))/2 + l2;
+        % BIC = -2*(L1+L2) + M*(M+3)*log(Ri(1)) + M*(M+3)*log(Ri(2));
         BIC = -2*(L1+L2) + M*(M+3)*log(R);
     end
 end
